@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Apr 16 17:24:22 2020
-
-@author: ASUS
-"""
 import sys
 sys.path.append("./code")
 sys.path.append("./breast_cancer_classifier-master")
@@ -19,16 +13,16 @@ from tensorflow.keras.utils import plot_model # pip install pydot-ng, pydot, gra
 import numpy as np
 import sklearn
 
-
+# custom AUC metric for malign labels
+# considers only first and third label
 class AUC_Malign(tf.keras.metrics.Metric):
-    def __init__(self, name="AUC_Malign", **kwargs):# label = LM, RM, LB, RB
-        super(AUC_Malign, self).__init__(name=name, **kwargs) # [0.6,0.75, 0.8]
+    def __init__(self, name="AUC_Malign", **kwargs):
+        super(AUC_Malign, self).__init__(name=name, **kwargs)
         self.auc = tf.keras.metrics.AUC(name=name, thresholds = [0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95])
 
     def update_state(self, y_true, y_pred):
         for i in range(4):
-            if i%2 ==0:
-                
+            if i%2 ==0: 
                 if i==0:
                     pred = y_pred[:,i]
                     true = y_true[:,i]
@@ -47,7 +41,8 @@ class AUC_Malign(tf.keras.metrics.Metric):
         self.auc.reset_states()
 
 
-
+# custom AUC metric for benign labels
+# considers only second and fourth label
 class AUC_Benign(tf.keras.metrics.Metric):
     def __init__(self, name="AUC_Benign", **kwargs):# label = LM, RM, LB, RB
         super(AUC_Benign, self).__init__(name=name, **kwargs)
@@ -75,7 +70,9 @@ class AUC_Benign(tf.keras.metrics.Metric):
 
 
 
-
+# custom sparse crossentropy applied singularly to every predicted label (distributed in a 2 dimentional vector)
+# i.e. benign/not benign:  [0.7, 0.3] compared with [1,0] (this for every label)
+# taking the average accross them
 class CustomCross(tf.keras.losses.Loss):
     def __init__(self, name='loss', **kwargs):
         super(CustomCross, self).__init__(name=name, **kwargs)

@@ -20,7 +20,7 @@ from creaListeDiImmaginiElabelsPerView import *
 
 
 def get_output_dict(xls_path, images_path): # get from xls with ground truth to dictionary of labels
-    output_labels_path = xls_path
+    output_labels_path = xls_path # path to xls file
     
     # OUTPUT 
     screen2label = allScreen2label(output_labels_path, images_path)
@@ -39,26 +39,27 @@ def get_output_dict(xls_path, images_path): # get from xls with ground truth to 
        
     output_dict = patient_label_dict
     
-    return output_dict
-
-   
+    return output_dict #dictionary of patients with associated output labels
 
 
+
+# DATA SEQUENCE AS MODEL INPUT 
 class Feeding_Sequence(Sequence):
 
     def __init__(self, x_set, y_set, parameters): # x_set = path to exam_list_cropped, y_set= path to xls file
         # INPUT
-        val_split = parameters["validation_split"]
+        val_split = parameters["validation_split"] # split rate
         train_split = 1 - val_split 
         total_patients = len(pickling.unpickle_from_file(x_set))
         number_patients_for_training = int((total_patients)*(train_split))
 
-        if parameters["training"] == True:
-            x_set = pickling.unpickle_from_file(x_set)[:number_patients_for_training] # listof dictionaries from exam_list_cropped.pkl
+        if parameters["training"] == True: # if doing the validation split
+            x_set = pickling.unpickle_from_file(x_set)[:number_patients_for_training] # list of dictionaries from exam_list_cropped.pkl
         else:
             x_set = pickling.unpickle_from_file(x_set)[number_patients_for_training:]
             
-        y_set = get_output_dict(xls_path = y_set, images_path = parameters["image_path"])
+        y_set = get_output_dict(xls_path = y_set, images_path = parameters["image_path"]) # get output dict
+        
         self.random_number_generator = np.random.RandomState(parameters["seed"])
         self.x, self.y = x_set, y_set
         self.batch_size = parameters['batch_size']
@@ -86,15 +87,14 @@ class Feeding_Sequence(Sequence):
         image_extension = ".hdf5" if self.parameters["use_hdf5"] else ".png"
         image_index = 0
 
-        for datum in (batch_x_dict): # for every patient in batch
+        for datum in (batch_x_dict): # THIS AUGMENTATION PART IS PARTIALLY TAKEN FROM run_model.py
 
-            patient = datum['L-CC'][0].split('_')[1]
-            #print(patient)
+            patient = datum['L-CC'][0].split('_')[1] # get name of patient
             patient_screens = []
             patient_screens_dict = {}
             
 
-            patient_dict = {view: [] for view in VIEWS.LIST}
+            patient_dict = {view: [] for view in VIEWS.LIST} # create structure that will be filled with images
             for view in VIEWS.LIST:
                 patient_screens_dict[view] = []
                 
@@ -118,8 +118,6 @@ class Feeding_Sequence(Sequence):
                 else:
                     loaded_heatmaps = None
 
-                # loaded_image_dict[view].append(loaded_image)
-                # loaded_heatmaps_dict[view].append(loaded_heatmaps)
 
                 if self.parameters["augmentation"]:
                     image_index = self.random_number_generator.randint(low=0, high=len(datum[view]))
@@ -142,9 +140,9 @@ class Feeding_Sequence(Sequence):
                     ], axis=2))
 
 
-                batch_x_feed_new[view].append(patient_dict[view][-1])
+                batch_x_feed_new[view].append(patient_dict[view][-1]) # adding images of specific view to dictionary of patient
 
-            batch_y.append(self.y[patient])
+            batch_y.append(self.y[patient]) # output related to the patient
            
 
         batch_y = np.stack(np.array(batch_y), axis=0)
@@ -163,9 +161,12 @@ class Feeding_Sequence(Sequence):
         #     batch_x_feed[view] = np.moveaxis(np.stack(np.array(batch_x)[:, n], axis=0), -1,1) # dictionary: key=scan(i.e. 'L-CC', 'R-CC'...), value=tensor of scans (1 image per patient)
         
         for n, view in enumerate(VIEWS.LIST):
-            batch_x_feed_new[view] = np.moveaxis(np.stack(np.array(batch_x_feed_new[view]), axis=0), -1,1)
-
-        return batch_x_feed_new , batch_y#, [None]
+            batch_x_feed_new[view] = np.moveaxis(np.stack(np.array(batch_x_feed_new[view]), axis=0), -1,1) # to obtain (1, width, height)
+            
+        # returns AS X a dict with all images for all patient patient organized by keys
+        # that are the views (i.e. {'L-CC: [all L-CC iamges of patients per batch], 'L-MLO': ...})
+        # returns as y a tensor of [batch, classes]
+        return batch_x_feed_new , batch_y#, [None] 
             
 
  
