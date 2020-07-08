@@ -2,7 +2,8 @@ import numpy as np
 
 import tensorflow as tf
 
-# Todo: remove data_format
+
+# FUNCTIONS TO BUILD (MOSTLY) RESNET
 
 _BATCH_NORM_DECAY = 0.997
 _BATCH_NORM_EPSILON = 1e-5

@@ -121,7 +121,7 @@ class Feeding_Sequence(Sequence):
 
                 if self.parameters["augmentation"]:
                     image_index = self.random_number_generator.randint(low=0, high=len(datum[view]))
-                cropped_image, cropped_heatmaps = loading.augment_and_normalize_image(
+                cropped_image, cropped_heatmaps = loading.augment_and_normalize_image( # producing cropped image
                     image=loaded_image,
                     auxiliary_image=loaded_heatmaps,
                     view=view,
@@ -132,15 +132,15 @@ class Feeding_Sequence(Sequence):
                     max_crop_size_noise=self.parameters["max_crop_size_noise"],
                 )
                 if loaded_heatmaps is None:
-                    patient_dict[view].append(cropped_image[:, :, np.newaxis])
+                    patient_dict[view].append(cropped_image[:, :, np.newaxis]) # adding the image to the list by specific view (i.e L-MLO, R-CC...)
                 else:
-                    patient_dict[view].append(np.concatenate([
+                    patient_dict[view].append(np.concatenate([ # adding the image and heatmap to the list by specific view (i.e L-MLO, R-CC...)
                         cropped_image[:, :, np.newaxis],
                         cropped_heatmaps,
                     ], axis=2))
 
 
-                batch_x_feed_new[view].append(patient_dict[view][-1]) # adding images of specific view to dictionary of patient
+                batch_x_feed_new[view].append(patient_dict[view][-1]) # adding image of specific view to dictionary of patient
 
             batch_y.append(self.y[patient]) # output related to the patient
            
